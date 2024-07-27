@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Table
 from sqlalchemy.orm import relationship
-from sql_app.database import Base
+from database import Base
 
 # Association table for the many-to-many relationship
 completed_challenges = Table(
@@ -30,3 +30,9 @@ class Challenge(Base):
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String, unique=True, index=True)
     points = Column(Integer)
+
+    completed_by = relationship(
+        'Account',
+        secondary=completed_challenges,
+        back_populates='completed_challenges'
+    )
