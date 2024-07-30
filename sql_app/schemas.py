@@ -12,7 +12,14 @@ class Account(AccountBase):
     completed_challenges: list['Challenge'] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class AccountUpdateUsername(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    
+
+class AccountUpdateEmail(BaseModel):
+    email: EmailStr
 
 class ChallengeBase(BaseModel):
     description: str
@@ -26,7 +33,7 @@ class Challenge(ChallengeBase):
     completed_by: list[Account] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Token(BaseModel):
     access_token: str

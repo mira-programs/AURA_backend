@@ -18,6 +18,22 @@ def create_account(db: Session, user: schemas.AccountCreate):
     db.refresh(db_account)
     return db_account
 
+def update_account_username(db: Session, account_id: int, new_username: str):
+    db_account = db.query(Account).filter(Account.id == account_id).first()
+    if db_account:
+        db_account.username = new_username
+        db.commit()
+        db.refresh(db_account)
+    return db_account
+
+def update_account_email(db: Session, account_id: int, new_email: str):
+    db_account = db.query(Account).filter(Account.id == account_id).first()
+    if db_account:
+        db_account.email = new_email
+        db.commit()
+        db.refresh(db_account)
+    return db_account
+
 def get_challenge(db: Session, id: int):
     return db.query(models.Challenge).filte(models.Challenge.id == id).first()
 

@@ -1,4 +1,3 @@
-# dependencies.py
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from database import SessionLocal
