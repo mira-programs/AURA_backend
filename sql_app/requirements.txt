@@ -4,5 +4,3 @@ sqlalchemy
 pydantic
 mysql-connector-python
 pillow
-tensorflow
-numpy
