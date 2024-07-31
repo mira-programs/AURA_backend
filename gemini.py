@@ -14,10 +14,9 @@ from io import BytesIO
 import os
 
 
-
 app = FastAPI()
 
-img = PIL.Image.open('image.jpg')
+#img = PIL.Image.open('image.jpg')
 
 
 # Or use `os.getenv('GOOGLE_API_KEY')` to fetch an environment variable.
