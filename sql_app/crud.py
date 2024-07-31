@@ -60,14 +60,46 @@ def create_challenge(db: Session, challenge: schemas.ChallengeCreate):
     db.refresh(db_challenge)
     return db_challenge
 
+def accept_challenge(db: Session, account_id: int, challenge_id: int):
+    db_account = get_account(db, account_id)
+    db_challenge = get_challenge(db, challenge_id)
+    if db_account and db_challenge:
+        db_account.accepted_challenges.append(db_challenge)
+        db.commit()
+        db.refresh(db_account)
+        return db_account
+    return None
+
 def complete_challenge(db: Session, account_id: int, challenge_id: int):
     db_account = get_account(db, account_id)
     db_challenge = get_challenge(db, challenge_id)
     if db_account and db_challenge:
-        db_account.completed_challenges.append(db_challenge)
-        db.commit()
-        db.refresh(db_account)
-        return db_account
+        accepted_challenge = db.query(models.AcceptedChallenge).filter(
+            models.AcceptedChallenge.account_id == account_id,
+            models.AcceptedChallenge.challenge_id == challenge_id
+        ).first()
+        if accepted_challenge:
+            accepted_challenge.completed = True
+            db_account.points += db_challenge.points
+            db.commit()
+            db.refresh(db_account)
+            return db_account
+    return None
+
+def fail_challenge(db: Session, account_id: int, challenge_id: int):
+    db_account = get_account(db, account_id)
+    db_challenge = get_challenge(db, challenge_id)
+    if db_account and db_challenge:
+        accepted_challenge = db.query(models.AcceptedChallenge).filter(
+            models.AcceptedChallenge.account_id == account_id,
+            models.AcceptedChallenge.challenge_id == challenge_id
+        ).first()
+        if accepted_challenge:
+            accepted_challenge.completed = False
+            db_account.points -= db_challenge.points
+            db.commit()
+            db.refresh(db_account)
+            return db_account
     return None
 
 def get_friends(db: Session, account_id: int):

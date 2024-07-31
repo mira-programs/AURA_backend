@@ -12,7 +12,7 @@ class AccountCreate(AccountBase):
 class Account(AccountBase):
     id: int
     points: int = 0
-    completed_challenges: list['Challenge'] = []
+    completed_challenges: list['ChallengeStatus'] = []
     friends: list['Account'] = []
 
     class Config:
@@ -33,7 +33,13 @@ class ChallengeCreate(ChallengeBase):
 
 class Challenge(ChallengeBase):
     id: int
-    completed_by: list[Account] = []
+    completed_by: list['ChallengeStatus'] = []
 
     class Config:
         from_attributes = True
+
+class ChallengeStatus(BaseModel):
+    account_id: int
+    challenge_id: int
+    completed: bool = False
+    failed: bool = False

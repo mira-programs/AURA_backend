@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
+from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import crud, models, schemas
@@ -70,9 +70,29 @@ def read_challenges(skip: int = 0, limit: int = 10, db: Session = Depends(get_db
 def create_challenge(challenge: schemas.ChallengeCreate, db: Session = Depends(get_db)):
     return crud.create_challenge(db, challenge)
 
+@app.post("/accounts/{account_id}/accept_challenge/{challenge_id}", response_model=schemas.Account)
+def accept_challenge(account_id: int, challenge_id: int, db: Session = Depends(get_db)):
+    db_account = crud.accept_challenge(db, account_id, challenge_id)
+    if db_account is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Account or Challenge not found",
+        )
+    return db_account
+
 @app.post("/accounts/{account_id}/complete_challenge/{challenge_id}", response_model=schemas.Account)
 def complete_challenge(account_id: int, challenge_id: int, db: Session = Depends(get_db)):
     db_account = crud.complete_challenge(db, account_id, challenge_id)
+    if db_account is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Account or Challenge not found",
+        )
+    return db_account
+
+@app.post("/accounts/{account_id}/fail_challenge/{challenge_id}", response_model=schemas.Account)
+def fail_challenge(account_id: int, challenge_id: int, db: Session = Depends(get_db)):
+    db_account = crud.fail_challenge(db, account_id, challenge_id)
     if db_account is None:
         raise HTTPException(
             status_code=404,

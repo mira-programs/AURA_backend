@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -26,13 +26,12 @@ class Account(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     points = Column(Integer, default=0)
-    first_name = Column(String, nullable=True)   
+    first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
 
-    completed_challenges = relationship(
-        'Challenge',
-        secondary=completed_challenges,
-        back_populates='completed_by'
+    accepted_challenges = relationship(
+        'ChallengeStatus',
+        back_populates='account'
     )
     
     friends = relationship(
@@ -50,7 +49,17 @@ class Challenge(Base):
     points = Column(Integer)
 
     completed_by = relationship(
-        'Account',
-        secondary=completed_challenges,
-        back_populates='completed_challenges'
+        'ChallengeStatus',
+        back_populates='challenge'
     )
+
+class ChallengeStatus(Base):
+    __tablename__ = "challenge_status"
+
+    account_id = Column(Integer, ForeignKey('accounts.id'), primary_key=True)
+    challenge_id = Column(Integer, ForeignKey('challenges.id'), primary_key=True)
+    completed = Column(Boolean, default=False)
+    failed = Column(Boolean, default=False)
+
+    account = relationship('Account', back_populates='accepted_challenges')
+    challenge = relationship('Challenge', back_populates='completed_by')
