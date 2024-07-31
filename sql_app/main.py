@@ -3,16 +3,6 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import crud, models, schemas
 
-
-# from fastapi.responses import JSONResponse
-# import tensorflow as tf
-# from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
-# from tensorflow.keras.preprocessing import image
-# import numpy as np
-# from io import BytesIO
-
-
-
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
@@ -25,12 +15,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-# Initialize the MobileNetV2 model
-# model = MobileNetV2(weights='imagenet')
-
-
 
 @app.get("/")
 def read_root():
@@ -96,23 +80,22 @@ def complete_challenge(account_id: int, challenge_id: int, db: Session = Depends
         )
     return db_account
 
+@app.get("/accounts/{account_id}/friends", response_model=list[schemas.Account])
+def get_friends(account_id: int, db: Session = Depends(get_db)):
+    db_account = crud.get_account(db, account_id)
+    if db_account is None:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return db_account.friends
 
+@app.get("/accounts/search/", response_model=list[schemas.Account])
+def search_accounts(username: str, db: Session = Depends(get_db)):
+    return crud.search_accounts_by_username(db, username)
 
-# @app.post('/predict')
-# async def predict(file: UploadFile = File(...)):
-#     contents = await file.read()
-#     img = image.load_img(BytesIO(contents), target_size=(224, 224))
-#     x = image.img_to_array(img)
-#     x = np.expand_dims(x, axis=0)
-#     x = preprocess_input(x)
-    
-#     preds = model.predict(x)
-#     results = decode_predictions(preds, top=1)[0]
-    
-#     serialized_results = [{'class': result[0], 'label': result[1], 'score': float(result[2])} for result in results]
-    
-#     return JSONResponse(content={'predictions': serialized_results})
+@app.get("/accounts/leaderboard", response_model=list[schemas.Account])
+def get_leaderboard(db: Session = Depends(get_db)):
+    return crud.get_accounts_by_points(db)
 
-# if __name__ == '__main__':
-#     import uvicorn
-#     uvicorn.run(app, host='0.0.0.0', port=8000)
+# Run the application
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=8000)

@@ -69,3 +69,13 @@ def complete_challenge(db: Session, account_id: int, challenge_id: int):
         db.refresh(db_account)
         return db_account
     return None
+
+def get_friends(db: Session, account_id: int):
+    account = db.query(models.Account).filter(models.Account.id == account_id).first()
+    return account.friends if account else []
+
+def search_accounts_by_username(db: Session, username: str):
+    return db.query(models.Account).filter(models.Account.username.contains(username)).all()
+
+def get_accounts_by_points(db: Session, skip: int = 0, limit: int = 10):
+    return db.query(models.Account).order_by(models.Account.points.desc()).offset(skip).limit(limit).all()
