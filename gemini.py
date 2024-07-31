@@ -4,8 +4,8 @@ import textwrap
 import google.generativeai as genai
 import PIL.Image
 
-from IPython.display import display
-from IPython.display import Markdown
+#from IPython.display import display
+#from IPython.display import Markdown
 #from google.colab import userdata
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
