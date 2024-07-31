@@ -10,6 +10,14 @@ friends = Table(
     Column('friend_id', Integer, ForeignKey('accounts.id'), primary_key=True)
 )
 
+# Table for friend requests
+friend_requests = Table(
+    'friend_requests',
+    Base.metadata,
+    Column('sender_id', Integer, ForeignKey('accounts.id'), primary_key=True),
+    Column('receiver_id', Integer, ForeignKey('accounts.id'), primary_key=True)
+)
+
 class Account(Base):
     __tablename__ = "accounts"
 
@@ -31,6 +39,20 @@ class Account(Base):
         secondary=friends,
         primaryjoin=id == friends.c.account_id,
         secondaryjoin=id == friends.c.friend_id
+    )
+
+    sent_requests = relationship(
+        'Account',
+        secondary=friend_requests,
+        primaryjoin=id == friend_requests.c.sender_id,
+        secondaryjoin=id == friend_requests.c.receiver_id
+    )
+
+    received_requests = relationship(
+        'Account',
+        secondary=friend_requests,
+        primaryjoin=id == friend_requests.c.receiver_id,
+        secondaryjoin=id == friend_requests.c.sender_id
     )
 
 class Challenge(Base):
