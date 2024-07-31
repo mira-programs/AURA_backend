@@ -23,7 +23,10 @@ img = PIL.Image.open('image.jpg')
 # Or use `os.getenv('GOOGLE_API_KEY')` to fetch an environment variable.
 #GOOGLE_API_KEY=userdata.get('AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E')
 
-genai.configure(api_key='AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E')
+
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', 'AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E')
+
+genai.configure(api_key=GOOGLE_API_KEY)
 
 
 model_name = None
@@ -49,10 +52,9 @@ def to_markdown(text):
 async def predict(file: UploadFile = File(...)):
     contents = await file.read()
     img = PIL.Image.open(BytesIO(contents))
-response = model.generate_content(img)
-markdown_text = to_markdown(response.text)
-
-#return JSONResponse(content={'predictions': markdown_text})
+    response = model.generate_content(img)
+    markdown_text = to_markdown(response.text)
+    return JSONResponse(content={'predictions': markdown_text})
 
 if __name__ == '__main__':
     import uvicorn
