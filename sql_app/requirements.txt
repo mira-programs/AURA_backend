@@ -6,3 +6,5 @@ mysql-connector-python
 pillow
 tensorflow
 numpy
+google-generativeai
+google-ai-generativelanguage
