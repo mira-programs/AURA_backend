@@ -12,8 +12,8 @@ CREATE TABLE accounts (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL,
-    hashed_password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    password VARCHAR(255) NOT NULL,  
+    points INT DEFAULT 0              
 );
 
 CREATE TABLE completed_challenges (
@@ -22,4 +22,12 @@ CREATE TABLE completed_challenges (
     PRIMARY KEY(account_id, challenge_id),
     FOREIGN KEY(account_id) REFERENCES accounts(id),
     FOREIGN KEY(challenge_id) REFERENCES challenges(id)
+);
+
+CREATE TABLE friends (
+    account_id INT,
+    friend_id INT,
+    PRIMARY KEY(account_id, friend_id),
+    FOREIGN KEY(account_id) REFERENCES accounts(id),
+    FOREIGN KEY(friend_id) REFERENCES accounts(id)
 );

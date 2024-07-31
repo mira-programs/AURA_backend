@@ -5,11 +5,13 @@ class AccountBase(BaseModel):
     username: str
 
 class AccountCreate(AccountBase):
-    password: str
+    password: str  
 
 class Account(AccountBase):
     id: int
+    points: int = 0  # New attribute
     completed_challenges: list['Challenge'] = []
+    friends: list['Account'] = []
 
     class Config:
         from_attributes = True
@@ -17,7 +19,6 @@ class Account(AccountBase):
 class AccountUpdateUsername(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     
-
 class AccountUpdateEmail(BaseModel):
     email: EmailStr
 

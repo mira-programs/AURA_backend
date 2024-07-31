@@ -1,8 +1,7 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import crud, models, schemas
-from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
@@ -23,6 +22,9 @@ def get_db():
     finally:
         db.close()
 
+# Initialize the MobileNetV2 model
+model = MobileNetV2(weights='imagenet')
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
@@ -41,19 +43,15 @@ def read_account_me(email: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Account not found")
     return db_account
 
-@app.get("/challenges/", response_model=list[schemas.Challenge])
-def read_challenges(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return crud.get_challenges(db, skip=skip, limit=limit)
+@app.get("/accounts/", response_model=list[schemas.Account])
+def read_accounts(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return crud.get_accounts(db, skip=skip, limit=limit)
 
-@app.post("/accounts/{account_id}/complete_challenge/{challenge_id}", response_model=schemas.Account)
-def complete_challenge(account_id: int, challenge_id: int, db: Session = Depends(get_db)):
-    db_account = crud.complete_challenge(db, account_id, challenge_id)
-    if db_account is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Account or Challenge not found",
-        )
-    return db_account
+@app.delete("/accounts/{account_id}")
+def delete_account(account_id: int, db: Session = Depends(get_db)):
+    if not crud.delete_account(db, account_id):
+        raise HTTPException(status_code=404, detail="Account not found")
+    return {"detail": "Account deleted"}
 
 @app.put("/accounts/{account_id}/username", response_model=schemas.Account)
 def update_username(account_id: int, username_update: schemas.AccountUpdateUsername, db: Session = Depends(get_db)):
@@ -73,6 +71,23 @@ def update_email(account_id: int, email_update: schemas.AccountUpdateEmail, db: 
         raise HTTPException(status_code=404, detail="Account not found")
     return db_account
 
+@app.get("/challenges/", response_model=list[schemas.Challenge])
+def read_challenges(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return crud.get_challenges(db, skip=skip, limit=limit)
+
+@app.post("/challenges/", response_model=schemas.Challenge)
+def create_challenge(challenge: schemas.ChallengeCreate, db: Session = Depends(get_db)):
+    return crud.create_challenge(db, challenge)
+
+@app.post("/accounts/{account_id}/complete_challenge/{challenge_id}", response_model=schemas.Account)
+def complete_challenge(account_id: int, challenge_id: int, db: Session = Depends(get_db)):
+    db_account = crud.complete_challenge(db, account_id, challenge_id)
+    if db_account is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Account or Challenge not found",
+        )
+    return db_account
 
 @app.post('/predict')
 async def predict(file: UploadFile = File(...)):
@@ -84,21 +99,10 @@ async def predict(file: UploadFile = File(...)):
     
     preds = model.predict(x)
     results = decode_predictions(preds, top=1)[0]
-    print(results)
-
-        # Converting the results to a JSON-serializable format
-    serialized_results = []
-    for result in results:
-        serialized_results.append({
-            'class': result[0],
-            'label': result[1],
-            'score': float(result[2])
-        })
-    print(serialized_results)
+    
+    serialized_results = [{'class': result[0], 'label': result[1], 'score': float(result[2])} for result in results]
     
     return JSONResponse(content={'predictions': serialized_results})
-
-  
 
 if __name__ == '__main__':
     import uvicorn
