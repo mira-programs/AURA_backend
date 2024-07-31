@@ -5,6 +5,8 @@ from tensorflow.keras.preprocessing import image
 import numpy as np
 
 app = Flask(__name__)
+
+# MobileNetV2 model: an AI model for image recognition, coming from TensorFlow
 model = MobileNetV2(weights='imagenet')
 
 @app.route('/predict', methods=['POST'])
