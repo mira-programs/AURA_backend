@@ -4,3 +4,6 @@ sqlalchemy
 pydantic
 mysql-connector-python
 pillow
+numpy
+google-generativeai
+google-ai-generativelanguage

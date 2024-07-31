@@ -11,7 +11,13 @@ def get_accounts(db: Session, skip: int = 0, limit: int = 10):
     return db.query(models.Account).offset(skip).limit(limit).all()
 
 def create_account(db: Session, user: schemas.AccountCreate):
-    db_account = models.Account(email=user.email, username=user.username, password=user.password)
+    db_account = models.Account(
+        email=user.email,
+        username=user.username,
+        password=user.password,
+        first_name=user.first_name,   # New attribute
+        last_name=user.last_name      # New attribute
+    )
     db.add(db_account)
     db.commit()
     db.refresh(db_account)

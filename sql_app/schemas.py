@@ -3,13 +3,15 @@ from pydantic import BaseModel, Field, EmailStr
 class AccountBase(BaseModel):
     email: str
     username: str
+    first_name: str = None
+    last_name: str = None
 
 class AccountCreate(AccountBase):
     password: str  
 
 class Account(AccountBase):
     id: int
-    points: int = 0  # New attribute
+    points: int = 0
     completed_challenges: list['Challenge'] = []
     friends: list['Account'] = []
 

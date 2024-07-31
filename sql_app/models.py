@@ -26,6 +26,8 @@ class Account(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     points = Column(Integer, default=0)
+    first_name = Column(String, nullable=True)   
+    last_name = Column(String, nullable=True)
 
     completed_challenges = relationship(
         'Challenge',
