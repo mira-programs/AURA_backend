@@ -13,9 +13,9 @@ app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# @app.get("/")
-# def read_root():
-#     return {"Hello": "World"}
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
 
 @app.post("/accounts/", response_model=schemas.Account)
 def create_account(account: schemas.Account, db: Session = Depends(get_db)):

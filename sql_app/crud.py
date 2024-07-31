@@ -1,5 +1,15 @@
 from sqlalchemy.orm import Session
 import models, schemas
+from models import Account  # Add this import
+
+def update_account_username(db: Session, account_id: int, new_username: str):
+    db_account = db.query(Account).filter(Account.id == account_id).first()
+    if db_account:
+        db_account.username = new_username
+        db.commit()
+        db.refresh(db_account)
+    return db_account
+
 
 def get_account(db: Session, id: int):
     return db.query(models.Account).filter(models.Account.id == id).first()
