@@ -47,6 +47,10 @@ def to_markdown(text):
   return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
 
 
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
 @app.post('/predict')
 async def predict(file: UploadFile = File(...)):
     contents = await file.read()
