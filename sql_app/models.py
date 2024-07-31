@@ -2,14 +2,6 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
 
-# Association table for the many-to-many relationship
-completed_challenges = Table(
-    'completed_challenges',
-    Base.metadata,
-    Column('account_id', Integer, ForeignKey('accounts.id'), primary_key=True),
-    Column('challenge_id', Integer, ForeignKey('challenges.id'), primary_key=True)
-)
-
 # Association table for the many-to-many relationship between friends
 friends = Table(
     'friends',

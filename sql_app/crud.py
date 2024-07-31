@@ -64,7 +64,7 @@ def accept_challenge(db: Session, account_id: int, challenge_id: int):
     db_account = get_account(db, account_id)
     db_challenge = get_challenge(db, challenge_id)
     if db_account and db_challenge:
-        db_challenge_status = models.ChallengeStatus(
+        db_challenge_status = models.AcceptedChallenge(
             account_id=account_id,
             challenge_id=challenge_id,
             completed=False,
@@ -82,8 +82,10 @@ def complete_challenge(db: Session, account_id: int, challenge_id: int):
         models.ChallengeStatus.challenge_id == challenge_id
     ).first()
     if db_challenge_status:
+        if db_challenge_status.failed:
+            raise Exception("Challenge cannot be completed because it has already failed.")
         db_challenge_status.completed = True
-        db.changes()
+        db.commit()  # This line should be db.commit(), not db.changes()
         db.refresh(db_challenge_status)
         db_account = get_account(db, account_id)
         db_account.points += db_challenge_status.challenge.points
@@ -92,11 +94,13 @@ def complete_challenge(db: Session, account_id: int, challenge_id: int):
     return None
 
 def fail_challenge(db: Session, account_id: int, challenge_id: int):
-    db_challenge_status = db.query(models.ChallengeStatus).filter(
-        models.ChallengeStatus.account_id == account_id,
-        models.ChallengeStatus.challenge_id == challenge_id
+    db_challenge_status = db.query(models.AcceptedChallenge).filter(
+        models.AcceptedChallenge.account_id == account_id,
+        models.AcceptedChallenge.challenge_id == challenge_id
     ).first()
     if db_challenge_status:
+        if db_challenge_status.completed:
+            raise Exception("Challenge cannot be failed because it has already been completed.")
         db_challenge_status.failed = True
         db.changes()
         db.refresh(db_challenge_status)
