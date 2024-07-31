@@ -1,15 +1,5 @@
 from sqlalchemy.orm import Session
 import models, schemas
-from models import Account  # Add this import
-
-def update_account_username(db: Session, account_id: int, new_username: str):
-    db_account = db.query(Account).filter(Account.id == account_id).first()
-    if db_account:
-        db_account.username = new_username
-        db.commit()
-        db.refresh(db_account)
-    return db_account
-
 
 def get_account(db: Session, id: int):
     return db.query(models.Account).filter(models.Account.id == id).first()
@@ -21,15 +11,15 @@ def get_accounts(db: Session, skip: int = 0, limit: int = 10):
     return db.query(models.Account).offset(skip).limit(limit).all()
 
 def create_account(db: Session, user: schemas.AccountCreate):
-    hashed_password = models.Account.hash_password(user.password)
-    db_account = models.Account(email=user.email, hashed_password = hashed_password)
+    hashed_password = user.password  # No hashing required
+    db_account = models.Account(email=user.email, username=user.username, hashed_password=hashed_password)
     db.add(db_account)
     db.commit()
     db.refresh(db_account)
     return db_account
 
 def update_account_username(db: Session, account_id: int, new_username: str):
-    db_account = db.query(Account).filter(Account.id == account_id).first()
+    db_account = db.query(models.Account).filter(models.Account.id == account_id).first()
     if db_account:
         db_account.username = new_username
         db.commit()
@@ -37,7 +27,7 @@ def update_account_username(db: Session, account_id: int, new_username: str):
     return db_account
 
 def update_account_email(db: Session, account_id: int, new_email: str):
-    db_account = db.query(Account).filter(Account.id == account_id).first()
+    db_account = db.query(models.Account).filter(models.Account.id == account_id).first()
     if db_account:
         db_account.email = new_email
         db.commit()
@@ -45,7 +35,7 @@ def update_account_email(db: Session, account_id: int, new_email: str):
     return db_account
 
 def get_challenge(db: Session, id: int):
-    return db.query(models.Challenge).filte(models.Challenge.id == id).first()
+    return db.query(models.Challenge).filter(models.Challenge.id == id).first()
 
 def get_challenges(db: Session, skip: int = 0, limit: int = 10):
     return db.query(models.Challenge).offset(skip).limit(limit).all()
