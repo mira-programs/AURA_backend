@@ -18,10 +18,11 @@ CREATE TABLE accounts (
     last_name VARCHAR(100)
 );
 
-CREATE TABLE accepted_challenges (
+CREATE TABLE challenge_status (
     account_id INT,
     challenge_id INT,
     completed BOOLEAN DEFAULT FALSE,
+    failed BOOLEAN DEFAULT FALSE,
     PRIMARY KEY(account_id, challenge_id),
     FOREIGN KEY(account_id) REFERENCES accounts(id),
     FOREIGN KEY(challenge_id) REFERENCES challenges(id)

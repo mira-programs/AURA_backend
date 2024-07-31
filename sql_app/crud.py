@@ -15,8 +15,8 @@ def create_account(db: Session, user: schemas.AccountCreate):
         email=user.email,
         username=user.username,
         password=user.password,
-        first_name=user.first_name,   # New attribute
-        last_name=user.last_name      # New attribute
+        first_name=user.first_name,
+        last_name=user.last_name
     )
     db.add(db_account)
     db.commit()
@@ -64,42 +64,46 @@ def accept_challenge(db: Session, account_id: int, challenge_id: int):
     db_account = get_account(db, account_id)
     db_challenge = get_challenge(db, challenge_id)
     if db_account and db_challenge:
-        db_account.accepted_challenges.append(db_challenge)
+        db_challenge_status = models.ChallengeStatus(
+            account_id=account_id,
+            challenge_id=challenge_id,
+            completed=False,
+            failed=False
+        )
+        db.add(db_challenge_status)
         db.commit()
-        db.refresh(db_account)
-        return db_account
+        db.refresh(db_challenge_status)
+        return db_challenge_status
     return None
 
 def complete_challenge(db: Session, account_id: int, challenge_id: int):
-    db_account = get_account(db, account_id)
-    db_challenge = get_challenge(db, challenge_id)
-    if db_account and db_challenge:
-        accepted_challenge = db.query(models.AcceptedChallenge).filter(
-            models.AcceptedChallenge.account_id == account_id,
-            models.AcceptedChallenge.challenge_id == challenge_id
-        ).first()
-        if accepted_challenge:
-            accepted_challenge.completed = True
-            db_account.points += db_challenge.points
-            db.commit()
-            db.refresh(db_account)
-            return db_account
+    db_challenge_status = db.query(models.ChallengeStatus).filter(
+        models.ChallengeStatus.account_id == account_id,
+        models.ChallengeStatus.challenge_id == challenge_id
+    ).first()
+    if db_challenge_status:
+        db_challenge_status.completed = True
+        db.changes()
+        db.refresh(db_challenge_status)
+        db_account = get_account(db, account_id)
+        db_account.points += db_challenge_status.challenge.points
+        db.commit()
+        return db_account
     return None
 
 def fail_challenge(db: Session, account_id: int, challenge_id: int):
-    db_account = get_account(db, account_id)
-    db_challenge = get_challenge(db, challenge_id)
-    if db_account and db_challenge:
-        accepted_challenge = db.query(models.AcceptedChallenge).filter(
-            models.AcceptedChallenge.account_id == account_id,
-            models.AcceptedChallenge.challenge_id == challenge_id
-        ).first()
-        if accepted_challenge:
-            accepted_challenge.completed = False
-            db_account.points -= db_challenge.points
-            db.commit()
-            db.refresh(db_account)
-            return db_account
+    db_challenge_status = db.query(models.ChallengeStatus).filter(
+        models.ChallengeStatus.account_id == account_id,
+        models.ChallengeStatus.challenge_id == challenge_id
+    ).first()
+    if db_challenge_status:
+        db_challenge_status.failed = True
+        db.changes()
+        db.refresh(db_challenge_status)
+        db_account = get_account(db, account_id)
+        db_account.points -= db_challenge_status.challenge.points
+        db.commit()
+        return db_account
     return None
 
 def get_friends(db: Session, account_id: int):

@@ -70,50 +70,30 @@ def read_challenges(skip: int = 0, limit: int = 10, db: Session = Depends(get_db
 def create_challenge(challenge: schemas.ChallengeCreate, db: Session = Depends(get_db)):
     return crud.create_challenge(db, challenge)
 
-@app.post("/accounts/{account_id}/accept_challenge/{challenge_id}", response_model=schemas.Account)
+@app.post("/accounts/{account_id}/accept_challenge/{challenge_id}", response_model=schemas.ChallengeStatus)
 def accept_challenge(account_id: int, challenge_id: int, db: Session = Depends(get_db)):
-    db_account = crud.accept_challenge(db, account_id, challenge_id)
-    if db_account is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Account or Challenge not found",
-        )
-    return db_account
+    return crud.accept_challenge(db, account_id, challenge_id)
 
 @app.post("/accounts/{account_id}/complete_challenge/{challenge_id}", response_model=schemas.Account)
 def complete_challenge(account_id: int, challenge_id: int, db: Session = Depends(get_db)):
-    db_account = crud.complete_challenge(db, account_id, challenge_id)
-    if db_account is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Account or Challenge not found",
-        )
-    return db_account
+    return crud.complete_challenge(db, account_id, challenge_id)
 
 @app.post("/accounts/{account_id}/fail_challenge/{challenge_id}", response_model=schemas.Account)
 def fail_challenge(account_id: int, challenge_id: int, db: Session = Depends(get_db)):
-    db_account = crud.fail_challenge(db, account_id, challenge_id)
-    if db_account is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Account or Challenge not found",
-        )
-    return db_account
+    return crud.fail_challenge(db, account_id, challenge_id)
 
 @app.get("/accounts/{account_id}/friends", response_model=list[schemas.Account])
 def get_friends(account_id: int, db: Session = Depends(get_db)):
-    db_account = crud.get_account(db, account_id)
-    if db_account is None:
-        raise HTTPException(status_code=404, detail="Account not found")
-    return db_account.friends
+    return crud.get_friends(db, account_id)
 
 @app.get("/accounts/search/", response_model=list[schemas.Account])
 def search_accounts(username: str, db: Session = Depends(get_db)):
     return crud.search_accounts_by_username(db, username)
 
 @app.get("/accounts/leaderboard", response_model=list[schemas.Account])
-def get_leaderboard(db: Session = Depends(get_db)):
-    return crud.get_accounts_by_points(db)
+def get_leaderboard(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return crud.get_accounts_by_points(db, skip=skip, limit=limit)
+
 
 # Run the application
 if __name__ == '__main__':
