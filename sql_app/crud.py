@@ -119,3 +119,79 @@ def search_accounts_by_username(db: Session, username: str):
 
 def get_accounts_by_points(db: Session, skip: int = 0, limit: int = 10):
     return db.query(models.Account).order_by(models.Account.points.desc()).offset(skip).limit(limit).all()
+
+def send_friend_request(db: Session, sender_id: int, receiver_id: int):
+    if sender_id == receiver_id:
+        raise Exception("Cannot send a friend request to yourself.")
+    
+    # Check if the request already exists
+    existing_request = db.query(models.friend_requests).filter(
+        models.friend_requests.c.sender_id == sender_id,
+        models.friend_requests.c.receiver_id == receiver_id
+    ).first()
+    
+    if existing_request:
+        raise Exception("Friend request already sent.")
+    
+    # Create a new friend request
+    db.add(models.friend_requests.insert().values(sender_id=sender_id, receiver_id=receiver_id))
+    db.commit()
+    return {"message": "Friend request sent."}
+
+def accept_friend_request(db: Session, sender_id: int, receiver_id: int):
+    if sender_id == receiver_id:
+        raise Exception("Cannot accept a friend request from yourself.")
+    
+    # Check if the friend request exists
+    request = db.query(models.friend_requests).filter(
+        models.friend_requests.c.sender_id == sender_id,
+        models.friend_requests.c.receiver_id == receiver_id
+    ).first()
+    
+    if not request:
+        raise Exception("Friend request not found.")
+    
+    # Add the friendship
+    db.add(models.friends.insert().values(account_id=sender_id, friend_id=receiver_id))
+    db.add(models.friends.insert().values(account_id=receiver_id, friend_id=sender_id))
+    
+    # Remove the friend request
+    db.query(models.friend_requests).filter(
+        models.friend_requests.c.sender_id == sender_id,
+        models.friend_requests.c.receiver_id == receiver_id
+    ).delete()
+    
+    db.commit()
+    return {"message": "Friend request accepted and friendship established."}
+
+def reject_friend_request(db: Session, sender_id: int, receiver_id: int):
+    if sender_id == receiver_id:
+        raise Exception("Cannot reject a friend request from yourself.")
+    
+    # Check if the friend request exists
+    request = db.query(models.friend_requests).filter(
+        models.friend_requests.c.sender_id == sender_id,
+        models.friend_requests.c.receiver_id == receiver_id
+    ).first()
+    
+    if not request:
+        raise Exception("Friend request not found.")
+    
+    # Remove the friend request
+    db.query(models.friend_requests).filter(
+        models.friend_requests.c.sender_id == sender_id,
+        models.friend_requests.c.receiver_id == receiver_id
+    ).delete()
+    
+    db.commit()
+    return {"message": "Friend request rejected."}
+
+def get_sent_friend_requests(db: Session, account_id: int):
+    return db.query(models.Account).join(
+        models.friend_requests, models.friend_requests.c.receiver_id == account_id
+    ).filter(models.friend_requests.c.sender_id == account_id).all()
+
+def get_received_friend_requests(db: Session, account_id: int):
+    return db.query(models.Account).join(
+        models.friend_requests, models.friend_requests.c.sender_id == account_id
+    ).filter(models.friend_requests.c.receiver_id == account_id).all()
