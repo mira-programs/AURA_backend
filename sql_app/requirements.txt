@@ -8,7 +8,6 @@ numpy
 google-generativeai
 google-ai-generativelanguage
 ipython
-textwrap
 python-dotenv
 transformers
 datasets
