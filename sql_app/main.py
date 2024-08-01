@@ -60,11 +60,10 @@ async def predict(file: UploadFile = File(...), description: str = None):
 
     # Prepare API request
     try:
-        response = model.generate_content([description, {
+        response = model.generate_content([description + "respond with ONLY yes or no. does the image match the previous statement?", {
             'mime_type': file.content_type,
             'data': contents
         }])
-        # markdown_text = to_markdown(response.text)
         return JSONResponse(content={'predictions': response.text})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
