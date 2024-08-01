@@ -5,7 +5,7 @@ import google.generativeai as genai
 import PIL.Image
 
 #from IPython.display import display
-#from IPython.display import Markdown
+from IPython.display import Markdown
 #from google.colab import userdata
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -23,9 +23,9 @@ app = FastAPI()
 #GOOGLE_API_KEY=userdata.get('AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E')
 
 
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', 'AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E')
+# GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', '')
 
-genai.configure(api_key=GOOGLE_API_KEY)
+genai.configure(api_key='AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E')
 
 
 model_name = None
