@@ -1,19 +1,54 @@
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-import json
-import pandas as pd
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, Trainer, TrainingArguments
-from datasets import Dataset
-from io import BytesIO
+import google.generativeai as genai
 import PIL.Image
+from io import BytesIO
+import textwrap
 from database import SessionLocal, engine
 import crud, models, schemas
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, Trainer, TrainingArguments
+from datasets import Dataset
+import json
+import pandas as pd
+import logging
+from fastapi.middleware.cors import CORSMiddleware
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # List of allowed origins (you can use ["*"] for all origins)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+# Hardcoded API Key
+API_KEY = 'AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E'
+
+# Configure Gemini API
+genai.configure(api_key=API_KEY)
+
+# Find a suitable model
+model_name = None
+for m in genai.list_models():
+    if 'generateContent' in m.supported_generation_methods:
+        model_name = m.name
+        print(m.name)
+        break
+
+if model_name is None:
+    raise ValueError("No suitable model found for content generation.")
+
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Dependency to get the database session
 def get_db():
@@ -163,77 +198,85 @@ async def predict(file: UploadFile = File(...), description: str = None):
 
 @app.post("/train_model")
 def train_model():
-    # Load your dataset
-    with open('data/challenges.json') as f:
-        data = json.load(f)
+    try:
+        # Load your dataset
+        with open('data/challenges.json') as f:
+            data = json.load(f)
 
-    # Convert to DataFrame
-    df = pd.DataFrame(data)
+        # Convert to DataFrame
+        df = pd.DataFrame(data)
 
-    # Create a single string input for the model
-    df['input'] = df.apply(lambda x: f"Challenge: {x['challenge']} Points: {x['points']}", axis=1)
+        # Create a single string input for the model
+        df['input'] = df.apply(lambda x: f"Challenge: {x['description']} Points: {x['points']}", axis=1)
 
-    # Load tokenizer and model
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    model = GPT2LMHeadModel.from_pretrained('gpt2')
+        # Load tokenizer and model
+        tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        model = GPT2LMHeadModel.from_pretrained('gpt2')
 
-    # Tokenize the data
-    train_dataset = Dataset.from_pandas(df[['input']])
-    train_dataset = train_dataset.map(lambda e: tokenizer(e['input'], truncation=True, padding='max_length'), batched=True)
+        # Tokenize the data
+        train_dataset = Dataset.from_pandas(df[['input']])
+        train_dataset = train_dataset.map(lambda e: tokenizer(e['input'], truncation=True, padding='max_length'), batched=True)
 
-    # Define training arguments
-    training_args = TrainingArguments(
-        output_dir='./results',
-        num_train_epochs=3,
-        per_device_train_batch_size=4,
-        save_steps=10_000,
-        save_total_limit=2,
-    )
+        # Define training arguments
+        training_args = TrainingArguments(
+            output_dir='./results',
+            num_train_epochs=3,
+            per_device_train_batch_size=4,
+            save_steps=10_000,
+            save_total_limit=2,
+        )
 
-    # Initialize Trainer
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_dataset,
-    )
+        # Initialize Trainer
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset,
+        )
 
-    # Train the model
-    trainer.train()
+        # Train the model
+        trainer.train()
 
-    # Save the model
-    model.save_pretrained('./model')
-    tokenizer.save_pretrained('./model')
+        # Save the model
+        model.save_pretrained('./model')
+        tokenizer.save_pretrained('./model')
 
-    return {"message": "Model trained and saved successfully"}
+        return {"message": "Model trained and saved successfully"}
+    except Exception as e:
+        logger.error(f"Error training model: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
-@app.post("/generate_challenge")
-def generate_challenge(description: str):
-    # Load tokenizer and model
-    tokenizer = GPT2Tokenizer.from_pretrained('./model')
-    model = GPT2LMHeadModel.from_pretrained('./model')
+@app.post("/generate_challenge", response_model=schemas.Challenge)
+def generate_challenge():
+    try:
+        # Load tokenizer and model
+        tokenizer = GPT2Tokenizer.from_pretrained('./model')
+        model = GPT2LMHeadModel.from_pretrained('./model')
 
-    # Encode the input
-    inputs = tokenizer.encode(f"Challenge: {description} Points:", return_tensors='pt')
+        # Generate a response
+        input_prompt = "Generate a challenge description and assign a points value."
+        inputs = tokenizer.encode(input_prompt, return_tensors='pt')
 
-    # Generate a response
-    outputs = model.generate(inputs, max_length=50, num_return_sequences=1)
+        outputs = model.generate(inputs, max_length=50, num_return_sequences=1)
+        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-    # Decode the response
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    # Extract challenge description and points
-    # Assumes response format is "Challenge: <description> Points: <points>"
-    parts = response.split("Points:")
-    if len(parts) == 2:
-        description = parts[0].replace("Challenge:", "").strip()
-        points = parts[1].strip()
+        # Parse the response to separate the description and points
+        if ':' not in response:
+            raise HTTPException(status_code=500, detail="Failed to generate a valid challenge.")
+        
+        description, points = response.split(':', 1)
+        description = description.strip()
+        points = points.strip()
+        
+        # Validate points
         try:
             points = int(points)
         except ValueError:
-            points = 0  # Default to 0 if conversion fails
-        return {"challenge": description, "points": points}
-    else:
-        return {"challenge": response, "points": 0}
+            raise HTTPException(status_code=500, detail="Failed to parse points value.")
+
+        return {"description": description, "points": points}
+    except Exception as e:
+        logger.error(f"Error generating challenge: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 # Run the application
 if __name__ == '__main__':
