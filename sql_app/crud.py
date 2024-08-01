@@ -1,5 +1,35 @@
 from sqlalchemy.orm import Session
 import models, schemas
+import random
+from sqlalchemy import func
+
+def get_available_challenge(db: Session, account_id: int, min_points: int, max_points: int):
+    # Find challenges within the specified points range
+    challenges = db.query(models.Challenge).filter(
+        models.Challenge.points >= min_points,
+        models.Challenge.points <= max_points
+    ).all()
+
+    if not challenges:
+        return None
+
+    # Find accepted challenges by the user
+    accepted_challenges = db.query(models.ChallengeStatus).filter(
+        models.ChallengeStatus.account_id == account_id,
+        models.ChallengeStatus.completed == False,
+        models.ChallengeStatus.failed == False
+    ).all()
+    
+    accepted_challenge_ids = {ch.challenge_id for ch in accepted_challenges}
+
+    # Filter out challenges already accepted by the user
+    available_challenges = [ch for ch in challenges if ch.id not in accepted_challenge_ids]
+
+    if not available_challenges:
+        return None
+
+    # Return a random challenge from the available challenges
+    return random.choice(available_challenges)
 
 def get_account(db: Session, id: int):
     return db.query(models.Account).filter(models.Account.id == id).first()

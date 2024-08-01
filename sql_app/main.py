@@ -174,6 +174,12 @@ def get_sent_friend_requests(account_id: int, db: Session = Depends(get_db)):
 def get_received_friend_requests(account_id: int, db: Session = Depends(get_db)):
     return crud.get_received_friend_requests(db, account_id)
 
+@app.get("/accounts/{account_id}/get_challenge", response_model=schemas.Challenge)
+def get_challenge_for_user(account_id: int, min_points: int, max_points: int, db: Session = Depends(get_db)):
+    challenge = crud.get_available_challenge(db, account_id, min_points, max_points)
+    if not challenge:
+        raise HTTPException(status_code=404, detail="No available challenge found within the specified points range.")
+    return challenge    
 
 # Run the application
 if __name__ == '__main__':
