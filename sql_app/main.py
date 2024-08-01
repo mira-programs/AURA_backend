@@ -1,12 +1,37 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+import google.generativeai as genai
+import PIL.Image
+from io import BytesIO
+import textwrap
 from database import SessionLocal, engine
 import crud, models, schemas
+from IPython.display import Markdown
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# Hardcoded API Key
+API_KEY = 'AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E'
+
+# Configure Gemini API
+genai.configure(api_key=API_KEY)
+
+# Find a suitable model
+model_name = None
+for m in genai.list_models():
+    if 'generateContent' in m.supported_generation_methods:
+        model_name = m.name
+        print(m.name)
+        break
+
+if model_name is None:
+    raise ValueError("No suitable model found for content generation.")
+
+model = genai.GenerativeModel(model_name)
 
 # Dependency to get the database session
 def get_db():
@@ -16,10 +41,35 @@ def get_db():
     finally:
         db.close()
 
+def to_markdown(text):
+    text = text.replace('•', '  *')
+    return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
+@app.post('/predict')
+async def predict(file: UploadFile = File(...), description: str = None):
+    if description is None:
+        raise HTTPException(status_code=400, detail="Challenge description is required")
+
+    # Read image file
+    contents = await file.read()
+    img = PIL.Image.open(BytesIO(contents))
+
+    # Prepare API request
+    try:
+        response = model.generate_content([description, {
+            'mime_type': file.content_type,
+            'data': contents
+        }])
+        markdown_text = to_markdown(response.text)
+        return JSONResponse(content={'predictions': markdown_text})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+# CRUD operations for accounts
 @app.post("/accounts/", response_model=schemas.Account)
 def create_account(account: schemas.AccountCreate, db: Session = Depends(get_db)):
     db_account = crud.get_account_by_email(db, email=account.email)
