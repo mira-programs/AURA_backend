@@ -31,7 +31,7 @@ for m in genai.list_models():
 if model_name is None:
     raise ValueError("No suitable model found for content generation.")
 
-model = genai.GenerativeModel(model_name)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Dependency to get the database session
 def get_db():
@@ -64,8 +64,8 @@ async def predict(file: UploadFile = File(...), description: str = None):
             'mime_type': file.content_type,
             'data': contents
         }])
-        markdown_text = to_markdown(response.text)
-        return JSONResponse(content={'predictions': markdown_text})
+        # markdown_text = to_markdown(response.text)
+        return JSONResponse(content={'predictions': response.text})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
