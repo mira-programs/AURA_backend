@@ -7,31 +7,11 @@ from io import BytesIO
 import textwrap
 from database import SessionLocal, engine
 import crud, models, schemas
-from IPython.display import Markdown
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-# Hardcoded API Key
-API_KEY = 'AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E'
-
-# Configure Gemini API
-genai.configure(api_key=API_KEY)
-
-# Find a suitable model
-model_name = None
-for m in genai.list_models():
-    if 'generateContent' in m.supported_generation_methods:
-        model_name = m.name
-        print(m.name)
-        break
-
-if model_name is None:
-    raise ValueError("No suitable model found for content generation.")
-
-model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Dependency to get the database session
 def get_db():
@@ -143,34 +123,6 @@ def search_accounts(username: str, db: Session = Depends(get_db)):
 def get_leaderboard(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     return crud.get_accounts_by_points(db, skip=skip, limit=limit)
 
-@app.post("/accounts/{sender_id}/send_friend_request/{receiver_id}")
-def send_friend_request(sender_id: int, receiver_id: int, db: Session = Depends(get_db)):
-    try:
-        return crud.send_friend_request(db, sender_id, receiver_id)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/accounts/{sender_id}/accept_friend_request/{receiver_id}")
-def accept_friend_request(sender_id: int, receiver_id: int, db: Session = Depends(get_db)):
-    try:
-        return crud.accept_friend_request(db, sender_id, receiver_id)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/accounts/{sender_id}/reject_friend_request/{receiver_id}")
-def reject_friend_request(sender_id: int, receiver_id: int, db: Session = Depends(get_db)):
-    try:
-        return crud.reject_friend_request(db, sender_id, receiver_id)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/accounts/{account_id}/sent_friend_requests")
-def get_sent_friend_requests(account_id: int, db: Session = Depends(get_db)):
-    return crud.get_sent_friend_requests(db, account_id)
-
-@app.get("/accounts/{account_id}/received_friend_requests")
-def get_received_friend_requests(account_id: int, db: Session = Depends(get_db)):
-    return crud.get_received_friend_requests(db, account_id)
 
 # Run the application
 if __name__ == '__main__':
