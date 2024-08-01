@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
-from markdown import Markdown
+from IPython.display import Markdown
 from sqlalchemy.orm import Session
 import google.generativeai as genai
 import PIL.Image
@@ -10,11 +10,21 @@ from database import SessionLocal, engine
 import crud, models, schemas
 from IPython.display import Markdown
 
+from fastapi.middleware.cors import CORSMiddleware
+
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # List of allowed origins (you can use ["*"] for all origins)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 # Hardcoded API Key
 API_KEY = 'AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E'
@@ -51,24 +61,9 @@ def to_markdown(text):
 def read_root():
     return {"Hello": "World"}
 
-@app.post('/predict')
-async def predict(file: UploadFile = File(...), description: str = None):
-    if description is None:
-        raise HTTPException(status_code=400, detail="Challenge description is required")
-
-    # Read image file
-    contents = await file.read()
-    img = PIL.Image.open(BytesIO(contents))
-
-    # Prepare API request
-    try:
-        response = model.generate_content([description + "respond with ONLY yes or no. does the image match the previous statement?", {
-            'mime_type': file.content_type,
-            'data': contents
-        }])
-        return JSONResponse(content={'predictions': response.text})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+@app.get("/test")
+async def test_connection():
+    return {"message": "Connection successful"}
 
 # CRUD operations for accounts
 @app.post("/accounts/", response_model=schemas.Account)
@@ -179,7 +174,26 @@ def get_challenge_for_user(account_id: int, min_points: int, max_points: int, db
     challenge = crud.get_available_challenge(db, account_id, min_points, max_points)
     if not challenge:
         raise HTTPException(status_code=404, detail="No available challenge found within the specified points range.")
-    return challenge    
+    return challenge  
+
+@app.post('/predict')
+async def predict(file: UploadFile = File(...), description: str = None):
+    if description is None:
+        raise HTTPException(status_code=400, detail="Challenge description is required")
+
+    # Read image file
+    contents = await file.read()
+    img = PIL.Image.open(BytesIO(contents))
+
+    # Prepare API request
+    try:
+        response = model.generate_content([description + "respond with ONLY yes or no. does the image match the previous statement?", {
+            'mime_type': file.content_type,
+            'data': contents
+        }])
+        return JSONResponse(content={'predictions': response.text})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 # Run the application
 if __name__ == '__main__':
