@@ -26,8 +26,7 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# Hardcoded API Key
-API_KEY = 'AIzaSyCnF3Z6RYjIhunH18AfYhj0Vkh2dEnBs4E'
+
 
 # Configure Gemini API
 genai.configure(api_key=API_KEY)
